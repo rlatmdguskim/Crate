@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Crate · 같이 디깅</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#f3efe6;--card:#fffdf8;--ink:#1b1915;--mute:#7a746a;--line:#e1dbcf;--acc:#d9480f;--accbg:#fbe3d6;--hero1:#1b1915;--hero2:#3a2417;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12100d;--card:#1d1a15;--ink:#f1ece2;--mute:#9b9486;--line:#312d25;--acc:#ff8a4c;--accbg:#3a2417;--hero1:#000;--hero2:#3a2417}}
+:root[data-theme="dark"]{--bg:#12100d;--card:#1d1a15;--ink:#f1ece2;--mute:#9b9486;--line:#312d25;--acc:#ff8a4c;--accbg:#3a2417;--hero1:#000;--hero2:#3a2417}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,"Apple SD Gothic Neo",system-ui,sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 40px}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:99px;padding:10px 18px;font-weight:600}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:99px;padding:8px 14px;color:var(--mute)}
+input,textarea,select{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%}
+textarea{min-height:70px;resize:vertical}
+nav{display:flex;justify-content:space-between;align-items:center;padding:14px 0;gap:8px}
+.brand{font:700 24px Georgia,serif;background:none;border:0;padding:0}.brand span{color:var(--acc)}
+.res{display:flex;gap:6px;flex-wrap:wrap}
+.res a,.lk a{font-size:13px;border:1px solid var(--line);background:var(--card);border-radius:99px;padding:4px 12px;color:var(--acc);text-decoration:none}
+.hero{border-radius:24px;padding:44px 28px;color:#f6efe3;background:radial-gradient(circle at 85% 20%,var(--hero2),transparent 60%),var(--hero1);margin-bottom:18px}
+.hero h2{font:700 clamp(34px,7vw,60px)/1.05 Georgia,serif;margin:0 0 10px;letter-spacing:-1px}
+.hero p{margin:0 0 20px;opacity:.75;max-width:460px}
+.stats{display:flex;gap:26px}.stats b{display:block;font:700 26px Georgia,serif}.stats small{opacity:.65}
+h3{font:700 20px Georgia,serif;margin:26px 0 12px}
+.strip{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px}
+.mini{flex:none;width:120px;text-align:left;background:none;border:0;padding:0}
+.mini .cv{width:120px;height:120px}.mini div:not(.cv){font-size:13px;margin-top:6px;line-height:1.25}
+.cv{border-radius:12px;display:grid;place-items:center;font:700 34px Georgia,serif;color:#fff;overflow:hidden;background-size:cover}
+.cv img{width:100%;height:100%;object-fit:cover;display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.sector{position:relative;height:170px;border-radius:20px;border:0;padding:16px;text-align:left;color:#fff;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.sector b{font:700 24px Georgia,serif;position:relative;text-shadow:0 1px 8px #0006}.sector small{position:relative;opacity:.9}
+.stack{position:absolute;top:14px;right:14px;display:flex}
+.stack .cv{width:54px;height:54px;border-radius:8px;margin-left:-16px;border:2px solid #fff8;font-size:18px;box-shadow:0 2px 8px #0005}
+.sector.add{background:transparent;border:2px dashed var(--line);color:var(--mute);align-items:center;justify-content:center;text-align:center}
+.hd{border-radius:20px;padding:26px 20px;color:#fff;margin-bottom:12px}.hd h2{font:700 34px Georgia,serif;margin:0}
+.back{background:#0004;border:0;color:#fff;border-radius:99px;padding:4px 12px;font-size:14px;margin-bottom:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.top{display:flex;gap:12px}.top .cv{width:84px;height:84px;flex:none}
+.t{font-weight:700;line-height:1.25}.a,.mut{color:var(--mute);font-size:14px}
+.stars{color:var(--acc);letter-spacing:2px}
+.note{font-size:14px;white-space:pre-wrap}
+.tg{font-size:12px;background:var(--accbg);color:var(--acc);border-radius:6px;padding:2px 8px}
+.lk{display:flex;gap:6px;flex-wrap:wrap}
+.acts{display:flex;gap:14px;font-size:14px}.acts button{background:none;border:0;padding:0;color:var(--mute)}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px}.cm{border-top:1px solid var(--line);padding-top:10px;font-size:14px}.rc{background:var(--bg);border-radius:10px;padding:8px 10px;margin:6px 0}.lnk{background:none;border:0;padding:0;margin-left:6px;font-size:12px;color:var(--mute)}.cm .sp{margin-top:8px}.cm textarea{margin-top:6px}
+.hint{font-size:12px;color:var(--mute);background:var(--accbg);border-radius:8px;padding:8px 10px;margin:8px 0}
+.empty{text-align:center;color:var(--mute);padding:50px 10px;grid-column:1/-1}
+.bar{margin:0 0 12px}
+.notice{background:var(--accbg);color:var(--acc);border-radius:12px;padding:10px 12px;font-size:14px;margin:0 0 12px}
+dialog{border:0;border-radius:20px;padding:18px;width:min(520px,94vw);background:var(--bg);color:var(--ink);max-height:92vh}
+dialog::backdrop{background:#0008}
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sp{display:flex;align-items:center}.sp .st{position:relative;display:inline-block;font-size:34px;line-height:1.1;color:var(--line);padding:0 1px}.sp .st.on{color:var(--acc)}.sp .st.h{background:linear-gradient(90deg,var(--acc) 50%,var(--line) 50%);-webkit-background-clip:text;background-clip:text;color:transparent}.sp .st b{position:absolute;top:0;bottom:0;left:0;width:50%;cursor:pointer}.sp .st b+b{left:50%}.hf{background:linear-gradient(90deg,var(--acc) 50%,var(--line) 50%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.foot{display:flex;justify-content:space-between;margin-top:14px;gap:8px}
+.covrow{display:flex;gap:12px;align-items:center}.covrow .cv{width:84px;height:84px;flex:none}
+.covrow .lk{margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav><button class="brand" id="home">Crate<span>.</span></button><div class="row" style="display:flex;gap:8px;align-items:center"><button class="ghost" id="srchBtn">🔍 검색</button><button class="ghost" id="outBtn" hidden>로그아웃</button></div></nav>
+  <div id="msg"></div>
+  <div id="main"></div>
+</div>
+
+<dialog id="dlg">
+  <div id="fT" style="font-weight:700;font-size:18px"></div>
+  <label>제목 *</label><input id="f_title">
+  <label>아티스트 *</label><input id="f_artist">
+  <label>앨범아트</label>
+  <div class="covrow"><div class="cv" id="f_prev"></div><div>
+    <input type="file" id="f_file" accept="image/*" style="padding:6px"><button type="button" class="ghost" id="f_auto" style="margin-top:6px">자동으로 찾기</button><div id="f_cands" class="strip" style="margin-top:6px"></div>
+    <div class="lk"><a id="f_find" href="#" target="_blank" rel="noopener">이미지 검색 ↗</a><button type="button" class="ghost" id="f_rm" style="padding:2px 10px;font-size:13px">제거</button></div>
+  </div></div>
+  <label>내 평점</label><div class="sp" id="f_sp"></div><div class="hint">개인 취향이 들어가는 건 자연스럽지만, 이 장르 안에서의 음악적 완성도(구성, 연주·프로덕션)도 함께 고려해 주세요. 별을 한 번 누르면 반 칸, 두 번 누르면 한 칸이에요. 평점은 한 번만 매길 수 있어요.</div>
+  <div class="two">
+    <div><label>장르 *</label><select id="f_genre"></select></div>
+    <div><label>종류</label><select id="f_type"><option>앨범</option><option>EP</option><option>싱글</option><option>믹스</option></select></div>
+  </div>
+  <div class="two">
+    <div><label>연도</label><input id="f_year" inputmode="numeric" maxlength="4"></div>
+    <div><label>국내/해외</label><select id="f_region"><option>국내</option><option>해외</option></select></div>
+  </div>
+  <label>YouTube 링크 (비워두면 자동 검색 버튼 사용)</label><input id="f_link" inputmode="url" placeholder="https://youtube.com/..."><div class="lk" style="margin-top:6px"><a id="f_yt" href="#" target="_blank" rel="noopener">YouTube에서 찾기 ↗</a></div>
+  <label>코멘트 (이 앨범을 소개하는 한마디)</label><textarea id="f_note" placeholder="추천 이유, 들어볼 만한 트랙, 분위기 등"></textarea>
+  <div class="foot"><button class="ghost" id="cancel">취소</button><button class="btn" id="save">저장</button></div>
+</dialog>
+
+<script>
+/* ▼ Firebase 설정: Firebase 콘솔의 웹 앱 설정값을 붙여넣으세요 */
+const FB={apiKey:'AIzaSyBPnhk4xETHeweaWCFXTO0PstyGwhPlmYg',authDomain:'digging-62a84.firebaseapp.com',projectId:'digging-62a84',appId:'1:463173889561:web:11d364f70079ee1bb40488'};
+/* ▲ */
+const DEF=['힙합','R&B/소울','재즈','일렉트로닉','록/인디','팝','기타'];
+const S={db:null,me:null,canWrite:false,isEditor:false,picks:[],reacts:[],custom:[],names:{},genre:null,q:'',open:{},editId:null,ready:false,pend:{},draft:{},comments:[],flock:false,frate:0,search:false,sf:{q:'',region:'',year:'',genre:''},cov:undefined};
+const $=id=>document.getElementById(id);
+const esc=s=>{const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML};
+const safeUrl=u=>{u=(u||'').trim();if(!u)return'';if(!/^https?:\/\//i.test(u))u='https://'+u;try{new URL(u);return u}catch(e){return''}};
+const enc=encodeURIComponent;
+const hue=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))%360;return h};
+const grad=s=>{const h=hue(s);return`linear-gradient(135deg,hsl(${h},55%,42%),hsl(${(h+50)%360},60%,30%))`};
+const genres=()=>[...DEF,...S.custom.filter(g=>!DEF.includes(g))];
+const SITES=[['AOTY','https://www.albumoftheyear.org/'],['RYM','https://rateyourmusic.com/'],['Metacritic','https://www.metacritic.com/browse/albums/score/metascore/all/filtered'],['Pitchfork','https://pitchfork.com/reviews/albums/']];
+const search=p=>{const q=enc(p.artist+' '+p.title);return[['AOTY','https://www.albumoftheyear.org/search/?q='+q],['RYM','https://rateyourmusic.com/search?searchtype=l&searchterm='+q],['Metacritic','https://www.metacritic.com/search/'+q+'/'],['Pitchfork','https://pitchfork.com/search/?query='+q]]};
+const nm=id=>S.names[id]||'친구';
+const yt=p=>'https://www.youtube.com/results?search_query='+enc(p.artist+' '+p.title);
+const stars=n=>{let s='';for(let i=1;i<=5;i++)s+=n>=i?'★':n>=i-.5?'<span class="hf">★</span>':'☆';return s};
+const reactsOf=pid=>S.reacts.filter(r=>r.pid===pid);
+const avg=pid=>{const r=reactsOf(pid).filter(x=>x.rating>0);return r.length?r.reduce((a,b)=>a+b.rating,0)/r.length:0};
+const cv=(p,extra='')=>p.cover?`<div class="cv" ${extra}><img src="${esc(p.cover)}" alt=""></div>`:`<div class="cv" ${extra} style="background:${grad(p.artist+p.title)}">${esc((p.title||'?')[0].toUpperCase())}</div>`;
+
+function render(){
+  if(!S.ready){$('main').innerHTML='<div class="empty">불러오는 중…</div>';return}
+  if(!S.me){renderAuth();return}
+  S.search?renderSearch():S.genre?renderGenre():renderHome();
+}
+function renderHome(){
+  const recent=[...S.picks].sort((a,b)=>b.ts-a.ts).slice(0,10);
+  const friends=new Set(S.picks.map(p=>p.author)).size;
+  $('main').innerHTML=`<section class="hero"><h2>Dig. Hear.<br>Share.</h2><p>A crate built by friends. Log it, rate it, talk about it.</p>
+<div class="stats"><div><b>${S.picks.length}</b><small>기록</small></div><div><b>${friends}</b><small>디거</small></div><div><b>${genres().length}</b><small>장르</small></div></div></section>
+<div class="res">${SITES.map(s=>`<a href="${s[1]}" target="_blank" rel="noopener">${s[0]} ↗</a>`).join('')}</div>
+${recent.length?`<h3>방금 올라온</h3><div class="strip">${recent.map(p=>`<button class="mini" data-g="${esc(p.genre)}">${cv(p)}<div><b>${esc(p.title)}</b><br><span class="mut">${esc(p.artist)}</span></div></button>`).join('')}</div>`:''}
+<h3>장르 섹터</h3><div class="grid">${genres().map(g=>{const l=S.picks.filter(p=>p.genre===g);const st=l.slice(0,3);
+return`<button class="sector" data-g="${esc(g)}" style="background:${grad(g)}"><div class="stack">${st.map(p=>cv(p)).join('')}</div><b>${esc(g)}</b><small>${l.length}개 기록</small></button>`}).join('')}
+${S.canWrite?`<button class="sector add" id="addGenre"><div><b style="font-size:28px;text-shadow:none">+</b><br>장르 추가</div></button>`:''}</div>`;
+}
+function renderGenre(){
+  const q=S.q.toLowerCase();
+  const l=S.picks.filter(p=>p.genre===S.genre&&(!q||[p.title,p.artist,p.note,(p.tags||[]).join(' ')].join(' ').toLowerCase().includes(q))).sort((a,b)=>b.ts-a.ts);
+  $('main').innerHTML=`<div class="hd" style="background:${grad(S.genre)}"><button class="back" id="bk">← 전체 장르</button><h2>${esc(S.genre)}</h2>${S.canWrite?'<button class="btn" id="addBtn2" style="margin-top:12px">+ 이 장르에 추가</button>':''}</div>
+<div class="bar"><input id="q" type="search" placeholder="이 장르에서 검색" value="${esc(S.q)}"></div>
+<div class="cards">${l.length?l.map(card).join(''):'<div class="empty">아직 기록이 없어요. 첫 번째 디깅을 남겨보세요.</div>'}</div>`;
+}
+function searchResults(){
+  const f=S.sf,q=f.q.toLowerCase();
+  const l=S.picks.filter(p=>(!f.region||p.region===f.region)&&(!f.year||p.year===f.year)&&(!f.genre||p.genre===f.genre)&&(!q||[p.title,p.artist,p.note].join(' ').toLowerCase().includes(q))).sort((a,b)=>b.ts-a.ts);
+  return`<div class="mut" style="margin-bottom:8px">${l.length}개 결과</div><div class="cards">${l.length?l.map(card).join(''):'<div class="empty">조건에 맞는 음악이 없어요.</div>'}</div>`;
+}
+function renderSearch(){
+  const f=S.sf,years=[...new Set(S.picks.map(p=>p.year).filter(Boolean))].sort().reverse();
+  const opt=(v,cur,label)=>`<option value="${esc(v)}" ${v===cur?'selected':''}>${esc(label||v)}</option>`;
+  $('main').innerHTML=`<div class="hd" style="background:${grad('search')}"><button class="back" id="bk">← 홈</button><h2>음악 검색</h2></div>
+<input id="sf_q" type="search" placeholder="제목, 아티스트, 코멘트 검색" value="${esc(f.q)}" style="margin-bottom:8px">
+<div class="filters"><select id="sf_region">${opt('',f.region,'국내/해외 전체')}${opt('국내',f.region)}${opt('해외',f.region)}</select><select id="sf_year">${opt('',f.year,'연도 전체')}${years.map(y=>opt(y,f.year)).join('')}</select><select id="sf_genre">${opt('',f.genre,'장르 전체')}${genres().map(g=>opt(g,f.genre)).join('')}</select></div>
+<div id="sres">${searchResults()}</div>`;
+}
+const pk=pr=>[1,2,3,4,5].map(n=>`<span class="st ${pr>=n?'on':pr>=n-.5?'h':''}" data-i="${n}">★</span>`).join('')+(pr?`<span class="mut" style="margin-left:8px">${pr}</span>`:'');
+const nextR=(c,i)=>c===i-.5?i:c===i?i-1:i-.5;
+function card(p){
+  const all=reactsOf(p.id),a=avg(p.id),mine=all.find(r=>r.uid===S.me),locked=!!(mine&&mine.rating>0);
+  const can=S.canWrite&&(p.author===S.me||S.isEditor);
+  const rOf=u=>{const r=all.find(x=>x.uid===u);return r?r.rating:0};
+  const cs=[...S.comments.filter(c=>c.pid===p.id).map(c=>({uid:c.uid,text:c.text,ts:c.ts||0,id:c.id})),...all.filter(r=>r.comment).map(r=>({uid:r.uid,text:r.comment,ts:r.ts||0,legacy:1}))];
+  all.filter(r=>r.rating>0&&!cs.some(c=>c.uid===r.uid)).forEach(r=>cs.push({uid:r.uid,text:'',ts:r.ts||0}));
+  cs.sort((x,y)=>x.ts-y.ts);
+  const seen={},pr=S.pend[p.id]||0,dr=S.draft[p.id]||'';
+  return`<div class="card"><div class="top">${cv(p)}<div><div class="t">${esc(p.title)}</div><div class="a">${esc(p.artist)} · ${esc(p.type)}${p.year?' · '+esc(p.year):''}${p.region?' · '+esc(p.region):''}${S.search?' · '+esc(p.genre):''}</div>
+<div class="mut">${esc(nm(p.author))} 님이 공유</div>
+<div><span class="stars">${a?stars(Math.round(a*2)/2):'☆☆☆☆☆'}</span> <span class="mut">${a?a.toFixed(1)+' ('+all.filter(r=>r.rating>0).length+')':'평점 없음'}</span></div></div></div>
+${p.note?`<div class="note">${esc(p.note)}</div>`:''}
+<div class="lk"><a href="${esc(p.link||yt(p))}" target="_blank" rel="noopener">▶ YouTube</a>${search(p).map(s=>`<a href="${esc(s[1])}" target="_blank" rel="noopener">${s[0]}</a>`).join('')}</div>
+${can?`<div class="acts"><button data-e="${p.id}">수정</button><button data-d="${p.id}">삭제</button></div>`:''}
+<div class="cm"><div style="font-weight:600;margin-bottom:6px">댓글 ${cs.filter(c=>c.text).length}</div>
+${cs.map(c=>{const first=!seen[c.uid];seen[c.uid]=1;const rt=first?rOf(c.uid):0;return`<div class="rc"><b>${esc(nm(c.uid))}</b>${rt?` <span class="stars">${stars(rt)}</span> <span class="mut">${rt}</span>`:''}${c.uid===S.me&&c.text?` <button class="lnk" ${c.id?`data-xc="${c.id}"`:`data-x="${p.id}"`}>삭제</button>`:''}${c.text?`<div>${esc(c.text)}</div>`:''}</div>`}).join('')||'<div class="mut">아직 댓글이 없어요.</div>'}
+${S.canWrite?`${locked?`<div class="mut" style="margin-top:8px">내 평점 <span class="stars">${stars(mine.rating)}</span> ${mine.rating} · 평점은 한 번만 매길 수 있어요</div>`:`<div class="hint">평점은 한 번만 매길 수 있어요. 개인 취향이 들어가는 건 자연스럽지만, 이 장르 안에서의 음악적 완성도(구성, 연주·프로덕션)도 함께 고려해 주세요.</div><div class="sp" data-p="${p.id}">${pk(pr)}</div>`}<textarea id="c_${p.id}" data-draft="${p.id}" placeholder="${locked?'댓글을 남겨보세요':'평점과 함께 댓글을 남겨보세요'}">${esc(dr)}</textarea><div class="foot"><span></span><button class="btn" data-s="${p.id}">댓글 등록</button></div>`:''}</div></div>`;
+}
+
+document.addEventListener('click',async e=>{
+  const t=e.target;
+  if(t.closest('#addBtn2')){openForm();return}
+  if(t.closest('#a_toggle')){S.signup=!S.signup;renderAuth();return}
+  if(t.closest('#a_go')){doAuth();return}
+  if(t.closest('#outBtn')){await auth.signOut();return}
+  const cu=t.closest('[data-cu]');if(cu){S.cov=cu.dataset.cu;prev();return}
+  if(t.closest('#srchBtn')){S.search=true;S.genre=null;render();window.scrollTo(0,0);return}
+  if(t.closest('#home')||t.closest('#bk')){S.genre=null;S.q='';S.search=false;render();return}
+  const g=t.closest('[data-g]');if(g){S.genre=g.dataset.g;S.q='';S.search=false;render();window.scrollTo(0,0);return}
+  if(t.closest('#addGenre')){
+    const n=(prompt('새 장르 이름')||'').trim().slice(0,20);if(!n)return;
+    if(genres().includes(n)){alert('이미 있는 장르예요.');return}
+    try{await S.db.doc('meta/genres').set({list:[...S.custom,n]})}catch(x){alert('추가하지 못했어요.')}return}
+  const o=t.closest('[data-o]');if(o){S.open[o.dataset.o]=!S.open[o.dataset.o];render();return}
+  const ed=t.closest('[data-e]');if(ed){openForm(ed.dataset.e);return}
+  const de=t.closest('[data-d]');
+  if(de&&confirm('이 기록을 삭제할까요?')){try{await S.db.doc('picks/'+de.dataset.d).delete()}catch(x){alert('삭제하지 못했어요.')}return}
+  const r=t.closest('[data-i]');
+  if(r){const sp=r.closest('.sp'),i=+r.dataset.i;
+    if(sp.id==='f_sp'){if(S.flock)return;S.frate=nextR(S.frate,i);sp.innerHTML=pk(S.frate);return}
+    const pid=sp.dataset.p,m=S.reacts.find(x=>x.pid===pid&&x.uid===S.me);
+    if(m&&m.rating>0)return;const cur=S.pend[pid]||0;S.pend[pid]=nextR(cur,i);sp.innerHTML=pk(S.pend[pid]);return}
+  const xc=t.closest('[data-xc]');
+  if(xc&&confirm('내 댓글을 삭제할까요?')){try{await S.db.doc('comments/'+xc.dataset.xc).delete()}catch(y){alert('삭제하지 못했어요.')}return}
+  const x=t.closest('[data-x]');
+  if(x&&confirm('내 댓글을 삭제할까요?')){try{await S.db.doc('reacts/'+x.dataset.x+'_'+S.me).update({comment:''})}catch(y){alert('삭제하지 못했어요.')}return}
+  const sv=t.closest('[data-s]');
+  if(sv){const pid=sv.dataset.s,m=S.reacts.find(y=>y.pid===pid&&y.uid===S.me),locked=!!(m&&m.rating>0);
+    const rating=locked?0:(S.pend[pid]||0),comment=$('c_'+pid).value.trim();
+    if(!rating&&!comment){alert('평점이나 댓글 중 하나는 남겨주세요.');return}
+    delete S.pend[pid];delete S.draft[pid];
+    try{
+      if(rating)await S.db.doc('reacts/'+pid+'_'+S.me).set({pid,uid:S.me,rating,comment:m?m.comment:'',ts:m?m.ts:Date.now()});
+      if(comment)await S.db.collection('comments').add({pid,uid:S.me,text:comment,ts:Date.now()});
+    }catch(y){S.pend[pid]=rating;S.draft[pid]=comment;alert('저장하지 못했어요.');render()}}
+});
+document.addEventListener('input',e=>{if(e.target.id&&e.target.id.startsWith('sf_')){S.sf[e.target.id.slice(3)]=e.target.value;$('sres').innerHTML=searchResults();return}if(e.target.dataset&&e.target.dataset.draft){S.draft[e.target.dataset.draft]=e.target.value;return}if(e.target.id==='q'){S.q=e.target.value;const p=e.target.selectionStart;render();const q=$('q');q.focus();q.setSelectionRange(p,p)}});
+
+function prev(){const p={title:$('f_title').value||'?',artist:$('f_artist').value,cover:S.cov};const d=document.createElement('div');d.innerHTML=cv(p);const n=d.firstChild;$('f_prev').innerHTML=n.innerHTML;$('f_prev').style.background=n.style.background||'var(--line)'}
+function setFind(){$('f_yt').href='https://www.youtube.com/results?search_query='+enc(($('f_artist').value+' '+$('f_title').value).trim());$('f_find').href='https://www.google.com/search?tbm=isch&q='+enc(($('f_artist').value+' '+$('f_title').value+' album cover').trim())}
+function readCover(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=rej;fr.onload=()=>{const im=new Image();im.onerror=rej;im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=320;const s=Math.min(im.width,im.height);c.getContext('2d').drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,320,320);res(c.toDataURL('image/jpeg',.8))};im.src=fr.result};fr.readAsDataURL(file)})}
+$('f_file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{S.cov=await readCover(f);prev()}catch(x){alert('이미지를 불러오지 못했어요.')}};
+$('f_rm').onclick=()=>{S.cov='';$('f_file').value='';prev()};
+['f_title','f_artist'].forEach(i=>$(i).addEventListener('input',()=>{setFind();if(!S.cov)prev()}));
+
+function openForm(id){
+  S.editId=id||null;
+  const p=S.picks.find(x=>x.id===id)||{title:'',artist:'',genre:S.genre||DEF[0],type:'앨범',year:'',tags:[],link:'',note:'',cover:''};
+  S.cov=p.cover||'';$('f_file').value='';
+  $('fT').textContent=id?'기록 수정':'새 기록';
+  $('f_genre').innerHTML=genres().map(g=>`<option ${g===p.genre?'selected':''}>${esc(g)}</option>`).join('');
+  $('f_title').value=p.title;$('f_region').value=p.region||'국내';$('f_artist').value=p.artist;$('f_type').value=p.type;$('f_year').value=p.year||'';
+  $('f_link').value=p.link||'';$('f_note').value=p.note||'';
+  const mm=p.id?S.reacts.find(x=>x.pid===p.id&&x.uid===S.me):null;S.frate=mm?mm.rating:0;S.flock=S.frate>0;$('f_sp').innerHTML=S.flock?stars(S.frate)+` <span class="mut" style="margin-left:8px;font-size:14px">${S.frate} · 평점은 한 번만 매길 수 있어요</span>`:pk(S.frate);
+  prev();setFind();$('dlg').showModal();
+}
+$('cancel').onclick=()=>$('dlg').close();
+$('save').onclick=async()=>{
+  const title=$('f_title').value.trim(),artist=$('f_artist').value.trim();
+  if(!title||!artist){alert('제목과 아티스트를 입력해주세요.');return}
+  const rec={title,artist,genre:$('f_genre').value,type:$('f_type').value,year:$('f_year').value.trim(),region:$('f_region').value,cover:S.cov||'',
+    link:safeUrl($('f_link').value),note:$('f_note').value.trim()};
+  try{
+    let pid=S.editId;
+    if(pid)await S.db.doc('picks/'+pid).update(rec);
+    else{const ref=await S.db.collection('picks').add({...rec,author:S.me,ts:Date.now()});pid=ref.id}
+    const m=S.reacts.find(x=>x.pid===pid&&x.uid===S.me);
+    if(!S.flock&&S.frate>0)await S.db.doc('reacts/'+pid+'_'+S.me).set({pid,uid:S.me,rating:S.frate,comment:m?m.comment:'',ts:m?m.ts:Date.now()});
+    $('dlg').close();
+  }catch(x){alert('저장하지 못했어요. 쓰기 권한이 있는지 확인해주세요.')}
+};
+
+const configured=!FB.apiKey.includes('YOUR_');
+let auth=null,fdb=null,unsubs=[];
+if(configured){firebase.initializeApp(FB);auth=firebase.auth();fdb=firebase.firestore()}
+const colRef=c=>({
+  onSnapshot(next,err){const u=fdb.collection(c).onSnapshot(sn=>next({docs:sn.docs.map(d=>({id:d.id,data:()=>d.data()}))}),err);unsubs.push(u);return u},
+  doc(id){return docRef(c+'/'+(id||fdb.collection(c).doc().id))},
+  async add(d){const r=await fdb.collection(c).add(d);return{id:r.id}}});
+const docRef=path=>{const r=fdb.doc(path);return{id:r.id,set:d=>r.set(d),update:d=>r.update(d),delete:()=>r.delete(),
+  onSnapshot(next,err){const u=r.onSnapshot(sn=>next({exists:sn.exists,data:()=>sn.data()}),err);unsubs.push(u);return u}}};
+
+function renderAuth(){
+  $('main').innerHTML=`<section class="hero"><h2>Dig. Hear.<br>Share.</h2><p>A crate built by friends. Log it, rate it, talk about it.</p></section>
+<div class="card" style="max-width:420px"><div style="font-weight:700;font-size:18px">${S.signup?'가입하기':'로그인'}</div>
+${S.signup?'<input id="a_nick" placeholder="닉네임" maxlength="20">':''}
+<input id="a_email" type="email" placeholder="이메일" autocomplete="email">
+<input id="a_pw" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="${S.signup?'new-password':'current-password'}">
+<div class="foot"><button class="ghost" id="a_toggle">${S.signup?'로그인으로':'처음이에요, 가입'}</button><button class="btn" id="a_go">${S.signup?'가입':'로그인'}</button></div>
+<div id="a_err" class="mut"></div></div>`;
+}
+const authMsg=e=>({'auth/email-already-in-use':'이미 가입된 이메일이에요. 로그인해주세요.','auth/invalid-credential':'이메일 또는 비밀번호가 맞지 않아요.','auth/wrong-password':'이메일 또는 비밀번호가 맞지 않아요.','auth/user-not-found':'이메일 또는 비밀번호가 맞지 않아요.','auth/weak-password':'비밀번호는 6자 이상이어야 해요.','auth/invalid-email':'이메일 형식이 올바르지 않아요.','auth/operation-not-allowed':'Firebase 콘솔에서 이메일/비밀번호 로그인을 켜주세요.','auth/too-many-requests':'시도가 너무 많아요. 잠시 후 다시 해주세요.'}[e.code]||e.message||'실패했어요.');
+async function doAuth(){
+  const email=$('a_email').value.trim(),pw=$('a_pw').value,nick=S.signup?$('a_nick').value.trim():'';
+  const err=m=>{$('a_err').textContent=m};
+  if(!email||pw.length<6){err('이메일과 6자 이상의 비밀번호를 입력해주세요.');return}
+  if(S.signup&&!nick){err('닉네임을 입력해주세요.');return}
+  err('처리 중…');
+  try{
+    if(S.signup){S.pendingNick=nick;await auth.createUserWithEmailAndPassword(email,pw)}
+    else await auth.signInWithEmailAndPassword(email,pw);
+  }catch(e){S.pendingNick=null;err(authMsg(e))}
+}
+
+let started='none';
+function start(user){
+  const uid=user?user.uid:null;
+  if(uid===started)return;started=uid;
+  unsubs.forEach(u=>u());unsubs=[];S.me=uid;S.canWrite=!!uid;S.isEditor=false;S.ready=true;
+  $('outBtn').hidden=!uid;
+  if(!uid){S.picks=[];S.reacts=[];S.comments=[];render();return}
+  S.db={collection:colRef,doc:docRef};
+  if(S.pendingNick){docRef('profiles/'+uid).set({name:S.pendingNick}).catch(()=>{});S.pendingNick=null}
+  const err=()=>{};
+  colRef('picks').onSnapshot(sn=>{S.picks=sn.docs.map(d=>({id:d.id,...d.data()}));render()},err);
+  colRef('reacts').onSnapshot(sn=>{S.reacts=sn.docs.map(d=>d.data());render()},err);
+  colRef('comments').onSnapshot(sn=>{S.comments=sn.docs.map(d=>({id:d.id,...d.data()}));render()},err);
+  colRef('profiles').onSnapshot(sn=>{sn.docs.forEach(d=>{const x=d.data();if(x&&x.name)S.names[d.id]=x.name});render()},err);
+  docRef('meta/genres').onSnapshot(sn=>{const d=sn.exists?sn.data():null;S.custom=d&&Array.isArray(d.list)?d.list.map(String):[];render()},err);
+  render();
+}
+$('f_auto').onclick=async()=>{
+  const t=$('f_title').value.trim(),a=$('f_artist').value.trim();
+  if(!t&&!a){alert('제목이나 아티스트를 먼저 입력해주세요.');return}
+  $('f_cands').textContent='찾는 중…';
+  try{
+    const r=await fetch('https://itunes.apple.com/search?media=music&entity=album&limit=6&term='+enc(a+' '+t));const j=await r.json();
+    $('f_cands').innerHTML=j.results.length?j.results.map(x=>`<button type="button" class="mini" data-cu="${esc(x.artworkUrl100.replace('100x100bb','600x600bb'))}" style="width:72px"><img src="${esc(x.artworkUrl100)}" style="width:72px;height:72px;border-radius:8px" alt=""></button>`).join(''):'결과가 없어요. 직접 첨부해 주세요.';
+  }catch(e){$('f_cands').textContent='자동 검색에 실패했어요. 직접 첨부해 주세요.'}
+};
+async function init(){
+  if(!configured){S.ready=true;$('main').innerHTML='<div class="notice">index.html 맨 위의 FB 설정(apiKey 등)을 채워주세요.</div>';return}
+  render();
+  auth.onAuthStateChanged(u=>start(u));
+}
+init();
+</script>
+</body>
+</html>

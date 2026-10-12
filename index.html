@@ -81,7 +81,7 @@ label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
     <input type="file" id="f_file" accept="image/*" style="padding:6px"><button type="button" class="ghost" id="f_auto" style="margin-top:6px">자동으로 찾기</button><div id="f_cands" class="strip" style="margin-top:6px"></div>
     <div class="lk"><a id="f_find" href="#" target="_blank" rel="noopener">이미지 검색 ↗</a><button type="button" class="ghost" id="f_rm" style="padding:2px 10px;font-size:13px">제거</button></div>
   </div></div>
-  <label>내 평점</label><div class="sp" id="f_sp"></div><div class="hint">개인 취향이 들어가는 건 자연스럽지만, 이 장르 안에서의 음악적 완성도(구성, 연주·프로덕션)도 함께 고려해 주세요. 별을 한 번 누르면 반 칸, 두 번 누르면 한 칸이에요. 평점은 한 번만 매길 수 있어요.</div>
+  <label>내 평점</label><div class="sp" id="f_sp"></div><div class="hint">개인 취향이 들어가는 건 자연스럽지만, 이 장르 안에서의 음악적 완성도(구성, 연주·프로덕션)도 함께 고려해 주세요. 별을 누를 때마다 0.1칸씩 채워져요(10번이면 한 칸). 가득 찬 별을 누르면 비워져요. 평점은 앨범당 하나이고, 나중에 수정할 수 있어요.</div>
   <div class="two">
     <div><label>장르 *</label><select id="f_genre"></select></div>
     <div><label>종류</label><select id="f_type"><option>앨범</option><option>EP</option><option>싱글</option><option>믹스</option></select></div>
@@ -112,7 +112,7 @@ const SITES=[['AOTY','https://www.albumoftheyear.org/'],['RYM','https://rateyour
 const search=p=>{const q=enc(p.artist+' '+p.title);return[['AOTY','https://www.albumoftheyear.org/search/?q='+q],['RYM','https://rateyourmusic.com/search?searchtype=l&searchterm='+q],['Metacritic','https://www.metacritic.com/search/'+q+'/'],['Pitchfork','https://pitchfork.com/search/?query='+q]]};
 const nm=id=>S.names[id]||'친구';
 const yt=p=>'https://www.youtube.com/results?search_query='+enc(p.artist+' '+p.title);
-const stars=n=>{let s='';for(let i=1;i<=5;i++)s+=n>=i?'★':n>=i-.5?'<span class="hf">★</span>':'☆';return s};
+const stars=n=>{let s='';for(let i=1;i<=5;i++){const f=Math.max(0,Math.min(1,n-(i-1)));s+=f>=1?'★':f<=0?'☆':`<span class="hf" style="background:linear-gradient(90deg,var(--acc) ${f*100}%,var(--line) ${f*100}%);-webkit-background-clip:text;background-clip:text;color:transparent">★</span>`}return s};
 const reactsOf=pid=>S.reacts.filter(r=>r.pid===pid);
 const avg=pid=>{const r=reactsOf(pid).filter(x=>x.rating>0);return r.length?r.reduce((a,b)=>a+b.rating,0)/r.length:0};
 const cv=(p,extra='')=>p.cover?`<div class="cv" ${extra}><img src="${esc(p.cover)}" alt=""></div>`:`<div class="cv" ${extra} style="background:${grad(p.artist+p.title)}">${esc((p.title||'?')[0].toUpperCase())}</div>`;
@@ -153,8 +153,8 @@ function renderSearch(){
 <div class="filters"><select id="sf_region">${opt('',f.region,'국내/해외 전체')}${opt('국내',f.region)}${opt('해외',f.region)}</select><select id="sf_year">${opt('',f.year,'연도 전체')}${years.map(y=>opt(y,f.year)).join('')}</select><select id="sf_genre">${opt('',f.genre,'장르 전체')}${genres().map(g=>opt(g,f.genre)).join('')}</select></div>
 <div id="sres">${searchResults()}</div>`;
 }
-const pk=pr=>[1,2,3,4,5].map(n=>`<span class="st ${pr>=n?'on':pr>=n-.5?'h':''}" data-i="${n}">★</span>`).join('')+(pr?`<span class="mut" style="margin-left:8px">${pr}</span>`:'');
-const nextR=(c,i)=>c===i-.5?i:c===i?i-1:i-.5;
+const pk=pr=>[1,2,3,4,5].map(n=>{const f=Math.max(0,Math.min(1,pr-(n-1)));return`<span class="st" data-i="${n}" style="background:linear-gradient(90deg,var(--acc) ${f*100}%,var(--line) ${f*100}%);-webkit-background-clip:text;background-clip:text;color:transparent">★</span>`}).join('')+(pr?`<span class="mut" style="margin-left:8px">${pr.toFixed(1)}</span>`:'');
+const nextR=(c,i)=>{const r=x=>Math.round(x*10)/10;if(c<=i-1)return r(i-1+.1);if(c<i)return r(c+.1);return r(i-1)};
 function card(p){
   const all=reactsOf(p.id),a=avg(p.id),mine=all.find(r=>r.uid===S.me),locked=!!(mine&&mine.rating>0);
   const can=S.canWrite&&(p.author===S.me||S.isEditor);
@@ -162,16 +162,16 @@ function card(p){
   const cs=[...S.comments.filter(c=>c.pid===p.id).map(c=>({uid:c.uid,text:c.text,ts:c.ts||0,id:c.id})),...all.filter(r=>r.comment).map(r=>({uid:r.uid,text:r.comment,ts:r.ts||0,legacy:1}))];
   all.filter(r=>r.rating>0&&!cs.some(c=>c.uid===r.uid)).forEach(r=>cs.push({uid:r.uid,text:'',ts:r.ts||0}));
   cs.sort((x,y)=>x.ts-y.ts);
-  const seen={},pr=S.pend[p.id]||0,dr=S.draft[p.id]||'';
+  const seen={},pr=S.pend[p.id]!==undefined?S.pend[p.id]:(mine?mine.rating:0),dr=S.draft[p.id]||'';
   return`<div class="card"><div class="top">${cv(p)}<div><div class="t">${esc(p.title)}</div><div class="a">${esc(p.artist)} · ${esc(p.type)}${p.year?' · '+esc(p.year):''}${p.region?' · '+esc(p.region):''}${S.search?' · '+esc(p.genre):''}</div>
 <div class="mut">${esc(nm(p.author))} 님이 공유</div>
-<div><span class="stars">${a?stars(Math.round(a*2)/2):'☆☆☆☆☆'}</span> <span class="mut">${a?a.toFixed(1)+' ('+all.filter(r=>r.rating>0).length+')':'평점 없음'}</span></div></div></div>
+<div><span class="stars">${a?stars(a):'☆☆☆☆☆'}</span> <span class="mut">${a?a.toFixed(1)+' ('+all.filter(r=>r.rating>0).length+')':'평점 없음'}</span></div></div></div>
 ${p.note?`<div class="note">${esc(p.note)}</div>`:''}
 <div class="lk"><a href="${esc(p.link||yt(p))}" target="_blank" rel="noopener">▶ YouTube</a>${search(p).map(s=>`<a href="${esc(s[1])}" target="_blank" rel="noopener">${s[0]}</a>`).join('')}</div>
 ${can?`<div class="acts"><button data-e="${p.id}">수정</button><button data-d="${p.id}">삭제</button></div>`:''}
 <div class="cm"><div style="font-weight:600;margin-bottom:6px">댓글 ${cs.filter(c=>c.text).length}</div>
 ${cs.map(c=>{const first=!seen[c.uid];seen[c.uid]=1;const rt=first?rOf(c.uid):0;return`<div class="rc"><b>${esc(nm(c.uid))}</b>${rt?` <span class="stars">${stars(rt)}</span> <span class="mut">${rt}</span>`:''}${c.uid===S.me&&c.text?` <button class="lnk" ${c.id?`data-xc="${c.id}"`:`data-x="${p.id}"`}>삭제</button>`:''}${c.text?`<div>${esc(c.text)}</div>`:''}</div>`}).join('')||'<div class="mut">아직 댓글이 없어요.</div>'}
-${S.canWrite?`${locked?`<div class="mut" style="margin-top:8px">내 평점 <span class="stars">${stars(mine.rating)}</span> ${mine.rating} · 평점은 한 번만 매길 수 있어요</div>`:`<div class="hint">평점은 한 번만 매길 수 있어요. 개인 취향이 들어가는 건 자연스럽지만, 이 장르 안에서의 음악적 완성도(구성, 연주·프로덕션)도 함께 고려해 주세요.</div><div class="sp" data-p="${p.id}">${pk(pr)}</div>`}<textarea id="c_${p.id}" data-draft="${p.id}" placeholder="${locked?'댓글을 남겨보세요':'평점과 함께 댓글을 남겨보세요'}">${esc(dr)}</textarea><div class="foot"><span></span><button class="btn" data-s="${p.id}">댓글 등록</button></div>`:''}</div></div>`;
+${S.canWrite?`<div class="hint">평점은 앨범당 하나만 남길 수 있고, 나중에 수정할 수 있어요. 별을 누를 때마다 0.1칸씩 채워져요. 개인 취향이 들어가는 건 자연스럽지만, 이 장르 안에서의 음악적 완성도(구성, 연주·프로덕션)도 함께 고려해 주세요.</div><div class="sp" data-p="${p.id}">${pk(pr)}</div><textarea id="c_${p.id}" data-draft="${p.id}" placeholder="댓글을 남겨보세요 (선택)">${esc(dr)}</textarea><div class="foot"><span></span><button class="btn" data-s="${p.id}">등록</button></div>`:''}</div></div>`;
 }
 
 document.addEventListener('click',async e=>{
@@ -196,20 +196,20 @@ document.addEventListener('click',async e=>{
   if(r){const sp=r.closest('.sp'),i=+r.dataset.i;
     if(sp.id==='f_sp'){if(S.flock)return;S.frate=nextR(S.frate,i);sp.innerHTML=pk(S.frate);return}
     const pid=sp.dataset.p,m=S.reacts.find(x=>x.pid===pid&&x.uid===S.me);
-    if(m&&m.rating>0)return;const cur=S.pend[pid]||0;S.pend[pid]=nextR(cur,i);sp.innerHTML=pk(S.pend[pid]);return}
+    const cur=S.pend[pid]!==undefined?S.pend[pid]:(m?m.rating:0);S.pend[pid]=nextR(cur,i);sp.innerHTML=pk(S.pend[pid]);return}
   const xc=t.closest('[data-xc]');
   if(xc&&confirm('내 댓글을 삭제할까요?')){try{await S.db.doc('comments/'+xc.dataset.xc).delete()}catch(y){alert('삭제하지 못했어요.')}return}
   const x=t.closest('[data-x]');
   if(x&&confirm('내 댓글을 삭제할까요?')){try{await S.db.doc('reacts/'+x.dataset.x+'_'+S.me).update({comment:''})}catch(y){alert('삭제하지 못했어요.')}return}
   const sv=t.closest('[data-s]');
-  if(sv){const pid=sv.dataset.s,m=S.reacts.find(y=>y.pid===pid&&y.uid===S.me),locked=!!(m&&m.rating>0);
-    const rating=locked?0:(S.pend[pid]||0),comment=$('c_'+pid).value.trim();
-    if(!rating&&!comment){alert('평점이나 댓글 중 하나는 남겨주세요.');return}
+  if(sv){const pid=sv.dataset.s,m=S.reacts.find(y=>y.pid===pid&&y.uid===S.me),old=m?m.rating:0;
+    const rating=S.pend[pid]!==undefined?S.pend[pid]:old,comment=$('c_'+pid).value.trim(),changed=rating!==old;
+    if(!changed&&!comment){alert('평점을 바꾸거나 댓글을 입력해주세요.');return}
     delete S.pend[pid];delete S.draft[pid];
     try{
-      if(rating)await S.db.doc('reacts/'+pid+'_'+S.me).set({pid,uid:S.me,rating,comment:m?m.comment:'',ts:m?m.ts:Date.now()});
+      if(changed)await S.db.doc('reacts/'+pid+'_'+S.me).set({pid,uid:S.me,rating,comment:m?m.comment:'',ts:m?m.ts:Date.now()});
       if(comment)await S.db.collection('comments').add({pid,uid:S.me,text:comment,ts:Date.now()});
-    }catch(y){S.pend[pid]=rating;S.draft[pid]=comment;alert('저장하지 못했어요.');render()}}
+    }catch(y){S.pend[pid]=rating;S.draft[pid]=comment;alert('저장하지 못했어요. Firebase 규칙이 최신인지 확인해주세요.');render()}}
 });
 document.addEventListener('input',e=>{if(e.target.id&&e.target.id.startsWith('sf_')){S.sf[e.target.id.slice(3)]=e.target.value;$('sres').innerHTML=searchResults();return}if(e.target.dataset&&e.target.dataset.draft){S.draft[e.target.dataset.draft]=e.target.value;return}if(e.target.id==='q'){S.q=e.target.value;const p=e.target.selectionStart;render();const q=$('q');q.focus();q.setSelectionRange(p,p)}});
 
@@ -228,7 +228,7 @@ function openForm(id){
   $('f_genre').innerHTML=genres().map(g=>`<option ${g===p.genre?'selected':''}>${esc(g)}</option>`).join('');
   $('f_title').value=p.title;$('f_region').value=p.region||'국내';$('f_artist').value=p.artist;$('f_type').value=p.type;$('f_year').value=p.year||'';
   $('f_link').value=p.link||'';$('f_note').value=p.note||'';
-  const mm=p.id?S.reacts.find(x=>x.pid===p.id&&x.uid===S.me):null;S.frate=mm?mm.rating:0;S.flock=S.frate>0;$('f_sp').innerHTML=S.flock?stars(S.frate)+` <span class="mut" style="margin-left:8px;font-size:14px">${S.frate} · 평점은 한 번만 매길 수 있어요</span>`:pk(S.frate);
+  const mm=p.id?S.reacts.find(x=>x.pid===p.id&&x.uid===S.me):null;S.frate=mm?mm.rating:0;S.flock=false;$('f_sp').innerHTML=pk(S.frate);
   prev();setFind();$('dlg').showModal();
 }
 $('cancel').onclick=()=>$('dlg').close();
@@ -242,7 +242,7 @@ $('save').onclick=async()=>{
     if(pid)await S.db.doc('picks/'+pid).update(rec);
     else{const ref=await S.db.collection('picks').add({...rec,author:S.me,ts:Date.now()});pid=ref.id}
     const m=S.reacts.find(x=>x.pid===pid&&x.uid===S.me);
-    if(!S.flock&&S.frate>0)await S.db.doc('reacts/'+pid+'_'+S.me).set({pid,uid:S.me,rating:S.frate,comment:m?m.comment:'',ts:m?m.ts:Date.now()});
+    if(S.frate!==(m?m.rating:0))await S.db.doc('reacts/'+pid+'_'+S.me).set({pid,uid:S.me,rating:S.frate,comment:m?m.comment:'',ts:m?m.ts:Date.now()});
     $('dlg').close();
   }catch(x){alert('저장하지 못했어요. 쓰기 권한이 있는지 확인해주세요.')}
 };
